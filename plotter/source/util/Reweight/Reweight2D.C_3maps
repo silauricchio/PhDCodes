@@ -1,0 +1,157 @@
+#define Reweight2D_cxx
+#include "Reweight2D.h"
+#include <TH2.h>
+#include <TStyle.h>
+#include <TCanvas.h>
+
+#include "Debug.h"
+
+void Reweight2D::Loop()
+{
+   if (fChain == 0) return;
+
+   TFile *f1 = TFile::Open(path_histo1_);
+   cout<< "path 1 open-> " << path_histo1_<< endl; 
+   TFile *f2 = TFile::Open(path_histo2_);
+   cout<< "path 2 open-> " << path_histo2_<< endl;
+   TFile *f3 = TFile::Open(path_histo3_);
+   cout<< "path 3 open-> " << path_histo3_<< endl;
+
+   if(!f1->IsOpen()) 
+     {
+       ERROR("Histogram path "<< path_histo1_ << "  not found!! --> Exit");
+       exit(EXIT_FAILURE);
+     }
+   
+   if(!f2->IsOpen())
+     {
+       ERROR("Histogram path "<< path_histo2_ << "  not found!! --> Exit");
+       exit(EXIT_FAILURE);
+     }
+
+   if(!f3->IsOpen())
+     {
+       ERROR("Histogram path "<< path_histo3_ << "  not found!! --> Exit");
+       exit(EXIT_FAILURE);
+     }
+   
+   // map weights for deta trackjets <0.4
+   f1->cd();
+   TH2D *h1_f1 = (TH2D*)f1->Get(this->name_histo1_f1_);
+   TH2D *h2_f1 = (TH2D*)f1->Get(this->name_histo2_f1_);
+	       
+   // map weights for 0.4 < deta trackjets <0.8   
+   f2->cd();
+   TH2D *h1_f2 = (TH2D*)f2->Get(this->name_histo1_f2_);
+   TH2D *h2_f2 = (TH2D*)f2->Get(this->name_histo2_f2_);
+
+   // map weights for deta trackjets >0.8
+   f3->cd();
+   TH2D *h1_f3 = (TH2D*)f3->Get(this->name_histo1_f3_);
+   TH2D *h2_f3 = (TH2D*)f3->Get(this->name_histo2_f3_);
+
+   f1->cd();
+   cout<< "file 1 name histos -> " << h1_f1->GetName() << " " << h2_f1->GetName()<< endl;
+   cout<< "file 2 name histos -> " << h1_f2->GetName() << " " << h2_f2->GetName()<< endl;
+   cout<< "file 3 name histos -> " << h1_f3->GetName() << " " << h2_f3->GetName()<< endl;
+
+   Long64_t nentries = fChain->GetEntriesFast();
+
+   double reweight_map1(1.), reweight_map2(1.);
+
+
+   TFile *new_f = new TFile(tree_path_ + "/Reweighted_" + tree_name_ + "_3maps.root", "RECREATE"); 
+   TTree* tree = (TTree*) fChain->GetTree()->CopyTree("");
+
+   Double_t var_value1X(-178.), var_value1Y(-178.), var_value2X(-178.), var_value2Y(-178.);
+   auto variables = tree->GetListOfLeaves();
+   TLeaf *var1X = NULL;
+   TLeaf *var1Y = NULL;
+   TLeaf *var2X = NULL;
+   TLeaf *var2Y = NULL;
+   for(auto variable : *variables)
+     {    
+       if(var_name1X_  == ((TLeaf*)variable)->GetName()) var1X = (TLeaf*)tree->GetLeaf(var_name1X_);
+       if(var_name1Y_  == ((TLeaf*)variable)->GetName()) var1Y = (TLeaf*)tree->GetLeaf(var_name1Y_);
+       
+       if(var_name2X_  == ((TLeaf*)variable)->GetName()) var2X = (TLeaf*)tree->GetLeaf(var_name2X_);
+       if(var_name2Y_  == ((TLeaf*)variable)->GetName()) var2Y = (TLeaf*)tree->GetLeaf(var_name2Y_);
+     }
+
+   if(var1X == NULL)
+     {
+       ERROR("Variable " << var_name1X_ << " not found in the tree. --> Exit!!");
+       exit(EXIT_FAILURE);
+     }
+   if(var1Y == NULL)
+     {
+       ERROR("Variable " << var_name1Y_ << " not found in the tree. --> Exit!!");
+       exit(EXIT_FAILURE);
+     }
+
+   if(var2X == NULL)
+     {
+       ERROR("Variable " << var_name2X_ << " not found in the tree. --> Exit!!");
+       exit(EXIT_FAILURE);
+     }
+   if(var2Y == NULL)
+     {
+       ERROR("Variable " << var_name2Y_ << " not found in the tree. --> Exit!!");
+       exit(EXIT_FAILURE);
+     }
+
+   TBranch* newBranch1 = tree->Branch("reweight_map1", &reweight_map1, "reweight_map1/D");
+   TBranch* newBranch2 = tree->Branch("reweight_map2", &reweight_map2, "reweight_map2/D");
+
+
+   Long64_t nbytes = 0, nb = 0;
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0) break;
+      nb = fChain->GetEntry(jentry);   nbytes += nb;
+
+      var_value1X = var1X ->GetValue();
+      var_value1Y = var1Y ->GetValue();
+
+      var_value2X = var2X ->GetValue();
+      var_value2Y = var2Y ->GetValue();
+   
+      double weight1 = 1.;
+      double weight2 = 1.;
+      
+      if(abs(trackjet1_eta-trackjet2_eta)<=0.4)
+	{
+	  weight1 = h1_f1->GetBinContent(h1_f1->FindBin(var_value1X, var_value1Y));
+	  weight2 = h2_f1->GetBinContent(h2_f1->FindBin(var_value2X, var_value2Y));
+	}
+      
+      if(abs(trackjet1_eta-trackjet2_eta)<0.8 && abs(trackjet1_eta-trackjet2_eta)>0.4)
+	{
+          weight1 = h1_f2->GetBinContent(h1_f2->FindBin(var_value1X, var_value1Y));
+          weight2 = h2_f2->GetBinContent(h2_f2->FindBin(var_value2X, var_value2Y));
+	}
+      
+      if(abs(trackjet1_eta-trackjet2_eta)>0.8)
+	{
+          weight1 = h1_f3->GetBinContent(h1_f3->FindBin(var_value1X, var_value1Y));
+          weight2 = h2_f3->GetBinContent(h2_f3->FindBin(var_value2X, var_value2Y));
+	}
+      
+      new_f->cd();
+      reweight_map1 = weight1;
+      reweight_map2 = weight2;
+
+      newBranch1->Fill();           
+      newBranch2->Fill();
+
+   }
+   
+   f1->Close();
+   f2->Close();
+   f3->Close();
+
+   //Store the new tree
+   tree->Write();
+   new_f->Close();
+   
+}

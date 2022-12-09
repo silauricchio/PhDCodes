@@ -1,0 +1,33 @@
+
+list='data'
+
+file_path="/afs/cern.ch/user/s/sauricch/work/YXH/ReaderOutput/07Sep20/SkimmedTrees/mc16a/"
+
+histo_path1='/afs/cern.ch/user/s/sauricch/work/YXH/plotter/run/Reweight_3maps/deta_0p4/file_Ratio2D.root'
+histo_path2='/afs/cern.ch/user/s/sauricch/work/YXH/plotter/run/Reweight_3maps/deta_0p40p8/file_Ratio2D.root'
+histo_path3='/afs/cern.ch/user/s/sauricch/work/YXH/plotter/run/Reweight_3maps/deta_0p8/file_Ratio2D.root'
+
+histo_name1_f1='Ratio_CR2_boosted_DeltaEtalessthan0p4_SB2_boosted_DeltaEtalessthan0p4_trackjet1_pt_trackjet1_eta_Data'
+histo_name2_f1='Ratio_CR2_boosted_DeltaEtalessthan0p4_SB2_boosted_DeltaEtalessthan0p4_trackjet2_pt_trackjet2_eta_Data'
+
+histo_name1_f2='Ratio_CR2_boosted_DeltaEta0p40p8_SB2_boosted_DeltaEta0p40p8_trackjet1_pt_trackjet1_eta_Data'
+histo_name2_f2='Ratio_CR2_boosted_DeltaEta0p40p8_SB2_boosted_DeltaEta0p40p8_trackjet2_pt_trackjet2_eta_Data'
+
+histo_name1_f3='Ratio_CR2_boosted_DeltaEtamore0p8_SB2_boosted_DeltaEtamore0p8_trackjet1_pt_trackjet1_eta_Data'
+histo_name2_f3='Ratio_CR2_boosted_DeltaEtamore0p8_SB2_boosted_DeltaEtamore0p8_trackjet2_pt_trackjet2_eta_Data'
+
+#map1
+var1X='trackjet1_eta' #on x axis
+var1Y='trackjet1_pt' #on y axis
+#map2
+var2X='trackjet2_eta' #on x axis                                                                                                                                                                          
+var2Y='trackjet2_pt' #on y axis
+
+for f in $list
+do 
+    echo 'RUNNING REWEIGHT MACRO FOR ' $f 
+ 
+    root -l -q  "/afs/cern.ch/user/s/sauricch/work/YXH/plotter/source/util/Reweight/Reweight2D.C(0,\"$file_path\", \"$f\", \"$histo_path1\", \"$histo_path2\", \"$histo_path3\", \"$histo_name1_f1\", \"$histo_name2_f1\", \"$histo_name1_f2\", \"$histo_name2_f2\", \"$histo_name1_f3\", \"$histo_name2_f3\", \"$var1X\", \"$var1Y\", \"$var2X\", \"$var2Y\")"
+done
+
+
