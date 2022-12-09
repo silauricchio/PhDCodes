@@ -1,4 +1,4 @@
-#This code provides useful function to plot variables and do basics statistical studies
+#This code provides useful functions to plot variables and do basics statistical studies
 
 There are 3 scripts you can use to speed up the use of the Plotter:
     1) script_start.sh : you need to source it at the beginning, so you can compile and run executable very easily
